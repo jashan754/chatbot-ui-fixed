@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+  <head>
+    <!-- PARENT-SIDE script (without "contentWindow") -->
+    <script src="https://cdn.jsdelivr.net/npm/iframe-resizer@4.3.9/js/iframeResizer.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+
+      #chat-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: #3c8dbc;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999998;
+        transition: all 0.3s ease;
+      }
+
+      #chat-button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+      }
+
+      #chat-button svg {
+        width: 28px;
+        height: 28px;
+        fill: white;
+      }
+
+      #chat-button.hidden {
+        display: none;
+      }
+
+      #chatbot-iframe {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        border: none;
+        background: transparent;
+        z-index: 999999;
+        transition: all 0.3s ease;
+        display: none;
+      }
+
+      #chatbot-iframe.visible {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Chat Button -->
+    <button id="chat-button" onclick="toggleChat()">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+        ></path>
+      </svg>
+    </button>
+
+    <!-- Chatbot Iframe -->
+    <iframe id="chatbot-iframe" src="http://localhost:5173/"></iframe>
+
+    <script>
+      let iframeResizer = null;
+      let isChatOpen = false;
+
+      function toggleChat() {
+        const iframe = document.getElementById("chatbot-iframe");
+        const button = document.getElementById("chat-button");
+
+        isChatOpen = !isChatOpen;
+
+        if (isChatOpen) {
+          // Show iframe, hide button
+          iframe.classList.add("visible");
+          button.classList.add("hidden");
+
+          // Initialize iframe-resizer when first opened
+          if (!iframeResizer) {
+            iframeResizer = iFrameResize(
+              {
+                log: true,
+                checkOrigin: false,
+                heightCalculationMethod: "taggedElement",
+                widthCalculationMethod: "taggedElement",
+                autoResize: true,
+                sizeWidth: true,
+                sizeHeight: true,
+                tolerance: 0,
+                resizeFrom: "child",
+                onResized: function (messageData) {
+                  console.log(
+                    "iframe resized to:",
+                    messageData.width + "x" + messageData.height,
+                  );
+                },
+              },
+              "#chatbot-iframe",
+            );
+          }
+        } else {
+          // Hide iframe, show button
+          iframe.classList.remove("visible");
+          button.classList.remove("hidden");
+        }
+      }
+
+      // Listen for any close messages from the iframe (if you add a close button later)
+      window.addEventListener("message", function (event) {
+        if (event.data?.type === "CLOSE_CHAT") {
+          toggleChat();
+        }
+      });
+    </script>
+
+    <!-- Demo content -->
+    <div style="max-width: 800px; margin: 0 auto">
+      <h1>Demo Page - Embedded Chatbot</h1>
+      <p>
+        This is a demo page showing how to embed the chatbot using an iframe.
+        Click the blue button in the bottom-right corner to open the chat.
+      </p>
+      <p>
+        The iframe automatically resizes based on the chatbot's content using
+        iframe-resizer library.
+      </p>
+    </div>
+  </body>
+</html>
