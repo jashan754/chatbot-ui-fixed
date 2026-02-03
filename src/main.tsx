@@ -1,10 +1,17 @@
+import { createRoot } from "react-dom/client";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import "./styles/index.css";
+import { ChatBot } from "@/app/components/ChatBot";
+import App from "@/app/App";
+const Main = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<App />} />
+        <Route path="/chatbot" element={<ChatBot />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
 
-  import { createRoot } from "react-dom/client";
-  import App from "./app/App.tsx";
-  import "./styles/index.css";
-  import { ChatBot } from '@/app/components/ChatBot';
-  createRoot(document.getElementById("root")!).render(<ChatBot />);
-  
-
-
-
+createRoot(document.getElementById("root")!).render(<Main />);
