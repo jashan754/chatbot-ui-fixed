@@ -149,7 +149,7 @@ export function ChatBot() {
       data-iframe-height
       data-iframe-width
       className={`bg-white rounded-xl overflow-hidden shadow-2xl border border-gray-200 flex flex-col transition-all duration-300 ${
-        isExpanded ? "w-[500px] h-[850px]" : "w-[420px] h-[600px]"
+        isExpanded ? "w-[520px] h-[880px]" : "w-[420px] h-[600px]"
       }`}
     >
       {/* Header */}
