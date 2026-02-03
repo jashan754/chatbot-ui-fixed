@@ -52,23 +52,6 @@ export function ChatBot() {
     }
   }, [isExpanded]);
 
-  async function fetchAgentResponse(userMessage: string): Promise<string> {
-    const response = await fetch("http://localhost:4000/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message: userMessage }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch agent response");
-    }
-
-    const data = await response.json();
-    return data.reply;
-  }
-
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
