@@ -274,7 +274,7 @@ export function ChatBot() {
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Ask about your dashboard data..."
-            className="flex-1 bg-white text-[12px] placeholder:text-[12px]"
+            className="flex-1 bg-white text-[13px] placeholder:text-[13px]"
           />
           <Button
             onClick={handleSendMessage}
