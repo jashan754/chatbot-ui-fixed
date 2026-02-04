@@ -245,7 +245,7 @@ export function ChatBot() {
                     message.text === "Thinking..."
                   ) && (
                     <p
-                      className={`text-[10px] mt-1 ${
+                      className={`text-[9px] mt-1 ${
                         message.sender === "user"
                           ? "text-blue-100"
                           : "text-gray-400"
