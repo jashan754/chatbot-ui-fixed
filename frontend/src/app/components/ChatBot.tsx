@@ -4,6 +4,9 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 
+const FANFORGE_API_URL = import.meta.env.VITE_FANFORGE_API_URL;
+const FANFORGE_API_KEY = import.meta.env.VITE_FANFORGE_API_KEY;
+
 // Declare iframe-resizer type
 declare global {
   interface Window {
@@ -20,12 +23,79 @@ interface Message {
   timestamp: Date;
 }
 
+// Function to parse and render markdown-like text
+const parseMarkdown = (text: string) => {
+  // Split by lines
+  const lines = text.split("\n");
+  const elements: JSX.Element[] = [];
+
+  lines.forEach((line, index) => {
+    const trimmedLine = line.trim();
+
+    if (!trimmedLine) {
+      // Skip empty lines
+      return;
+    } else if (
+      trimmedLine.startsWith("- **") ||
+      trimmedLine.startsWith("• **")
+    ) {
+      // Bullet point with bold text
+      const content = trimmedLine.replace(/^[-•]\s*/, "");
+      elements.push(
+        <div key={index} className="flex gap-2 mb-1">
+          <span className="text-blue-600 font-bold">•</span>
+          <div className="flex-1">{renderBoldText(content)}</div>
+        </div>,
+      );
+    } else if (trimmedLine.startsWith("-") || trimmedLine.startsWith("•")) {
+      // Regular bullet point
+      const content = trimmedLine.replace(/^[-•]\s*/, "");
+      elements.push(
+        <div key={index} className="flex gap-2 mb-1 ml-4">
+          <span className="text-gray-600">•</span>
+          <div className="flex-1">{renderBoldText(content)}</div>
+        </div>,
+      );
+    } else {
+      // Regular text
+      elements.push(
+        <div key={index} className="mb-1">
+          {renderBoldText(trimmedLine)}
+        </div>,
+      );
+    }
+  });
+
+  return elements;
+};
+
+// Function to render text with bold markdown
+const renderBoldText = (text: string) => {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+
+  return parts.map((part, idx) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      const boldText = part.slice(2, -2);
+      return (
+        <strong key={idx} className="font-semibold text-gray-900">
+          {boldText}
+        </strong>
+      );
+    }
+    return <span key={idx}>{part}</span>;
+  });
+};
+
 export function ChatBot() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
+  const [assistantTitle, setAssistantTitle] = useState(
+    "FanViz Analytics Assistant",
+  );
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -34,8 +104,17 @@ export function ChatBot() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "SET_ASSISTANT_TITLE") {
+        setAssistantTitle(event.data.title + " Assistant");
+      }
+    };
 
-  // Trigger iframe resize when expand state changes
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
   useEffect(() => {
     if (window.parentIFrame) {
       // Trigger resize immediately
@@ -83,26 +162,62 @@ export function ChatBot() {
     }, 500);
 
     try {
-      // ✅ WAIT so "Thinking..." exists
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      const reply =
-        "AI Insight: Based on current msg, revenue is trending upward and user retention has improved.";
+      // Make POST request to FanForge API
+      const response = await fetch(FANFORGE_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${FANFORGE_API_KEY}`,
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: userText,
+            },
+          ],
+          stream: false,
+          model: "cx-kpi-insights-nlp-agent",
+        }),
+      });
 
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      // Parse OpenAI format response
+      const data = await response.json();
+
+      // Extract content from OpenAI response format
+      const aiResponse =
+        data.choices?.[0]?.message?.content || data.choices?.[0]?.text || "";
+
+      if (!aiResponse) {
+        throw new Error("No response received from AI.");
+      }
+
+      // Update message with AI response
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === typingId
-            ? { ...msg, text: reply, timestamp: new Date() }
+            ? { ...msg, text: aiResponse, timestamp: new Date() }
             : msg,
         ),
       );
     } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? `Error: ${error.message}`
+          : "Sorry, something went wrong while fetching insights.";
+
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === typingId
             ? {
                 ...msg,
-                text: "Sorry, something went wrong while fetching insights.",
+                text: errorMessage,
                 timestamp: new Date(),
               }
             : msg,
@@ -145,7 +260,7 @@ export function ChatBot() {
 
           <div>
             <h3 className="text-sm font-semibold text-white">
-              FanViz Analytics Assistant
+              {assistantTitle}
             </h3>
             <p className="text-[11px] text-blue-100">Online</p>
           </div>
@@ -176,7 +291,7 @@ export function ChatBot() {
 
       {/* Messages Area */}
       <ScrollArea
-        className="flex-1 p-4 overflow-y-auto"
+        className="flex-1 px-2 py-3 overflow-y-auto"
         style={{ maxHeight: "calc(100% - 120px)" }}
       >
         {messages.length === 0 ? (
@@ -236,9 +351,11 @@ export function ChatBot() {
                       : undefined
                   }
                 >
-                  <p className="text-[12px] leading-snug break-words">
-                    {message.text}
-                  </p>
+                  <div className="text-[12px] leading-relaxed break-words">
+                    {message.sender === "agent"
+                      ? parseMarkdown(message.text)
+                      : message.text}
+                  </div>
                   {!(
                     isThinking &&
                     message.sender === "agent" &&
